@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Relying Party</title>
+    <script>
+        async function createTransaction() {
+            console.log("createTransaction")
+            const response = await fetch("transaction/create", {
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    /** URL prefix for the embedded URL in the QR Code, e.g. `haip://` */
+                    "urlprefix": "haip://",
+                    "credentials": [{
+                        /** Set an SD-JWT type or ISO doctype of a credential known to this service */
+                        "credentialType": "urn:eu.europa.ec.eudi:pid:1",
+                        /** Set `SD_JWT` or `PLAIN_JWT` or `ISO_MDOC` */
+                        "representation": "SD_JWT",
+                        /** Optionally set which attributes should be requested from the Wallet */
+                        "attributes": ["family_name", "given_name", "birth_date"]
+                    }]
+                })
+            })
+            const data = await response.json()
+            document.getElementById("qrcode").src = "data:image/png;base64," + data.qrCodePng
+            document.getElementById("qrcodeurl").href = data.qrCodeUrl
+            document.getElementById("qrcodeurl").innerText = data.qrCodeUrl
+        }
+
+    </script>
+</head>
+<body style="background-color: #f3f3f3">
+<p>
+    <button onclick="createTransaction()">Generate QR Code</button>
+</p>
+<p>
+    <img id="qrcode" src="" width="300px">
+</p>
+<p>
+    <a id="qrcodeurl" href=""></a>
+</p>
+</body>
+</html>

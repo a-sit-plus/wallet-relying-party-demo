@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Relying Party</title>
+    <script>
+        async function loadUser() {
+            console.log("loadUser")
+            const urlParams = new URLSearchParams(window.location.search);
+            const idParam = urlParams.get('id');
+
+            const response = await fetch("api/single/" + idParam)
+            const data = await response.json()
+            document.getElementById("data").innerText = JSON.stringify(data)
+        }
+
+    </script>
+</head>
+<body style="background-color: #f3f3f3" onload="loadUser()">
+<p>
+    Authentication successful!
+</p>
+<p id="data">
+</p>
+</body>
+</html>
