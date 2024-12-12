@@ -12,6 +12,7 @@ class DemoApplication
 fun main(args: Array<String>) {
 	Napier.takeLogarithm()
 	Napier.base(AntilogSlf4jAdapter())
+	at.asitplus.wallet.lib.Initializer.initOpenIdModule()
 	at.asitplus.wallet.idaustria.Initializer.initWithVCK()
 	at.asitplus.wallet.eupid.Initializer.initWithVCK()
 	at.asitplus.wallet.mdl.Initializer.initWithVCK()

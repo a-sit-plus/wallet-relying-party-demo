@@ -25,7 +25,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.2")
 
     implementation(napier())
-    implementation("at.asitplus.wallet:vck-openid:5.1.0")
+    implementation("at.asitplus.wallet:vck-openid:5.2.0")
+    /** Include supported credentials for VC-K, see https://github.com/a-sit-plus/credentials-collection */
     implementation("at.asitplus.wallet:idacredential:3.9.1")
     implementation("at.asitplus.wallet:eupidcredential:2.2.1")
     implementation("at.asitplus.wallet:mobiledrivinglicence:1.1.1")
@@ -44,6 +45,4 @@ tasks.getByName<BootJar>("bootJar") {
 
 repositories {
     mavenCentral()
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-    maven("https://oss.sonatype.org/content/repositories/snapshots/")
 }

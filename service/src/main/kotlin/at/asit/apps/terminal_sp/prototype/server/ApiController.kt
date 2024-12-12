@@ -2,14 +2,10 @@ package at.asit.apps.terminal_sp.prototype.server
 
 import at.asitplus.openid.AuthenticationResponseParameters
 import at.asitplus.openid.OpenIdConstants
-import at.asitplus.signum.indispensable.asn1.*
-import at.asitplus.signum.indispensable.asn1.encoding.Asn1
-import at.asitplus.signum.indispensable.pki.SubjectAltNameImplicitTags
-import at.asitplus.signum.indispensable.pki.X509CertificateExtension
-import at.asitplus.wallet.lib.agent.EphemeralKeyWithSelfSignedCert
+import at.asitplus.openid.RelyingPartyMetadata
+import at.asitplus.wallet.lib.agent.EphemeralKeyWithoutCert
 import at.asitplus.wallet.lib.agent.VerifierAgent
 import at.asitplus.wallet.lib.oidc.OidcSiopVerifier
-import at.asitplus.wallet.lib.oidc.OidcSiopVerifier.ClientIdScheme.CertificateSanDns
 import at.asitplus.wallet.lib.oidvci.decodeFromPostBody
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.runBlocking
@@ -24,7 +20,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import org.springframework.web.util.UriComponentsBuilder
 import qrcode.QRCode
 import java.util.*
-import kotlin.collections.set
 import kotlin.random.Random
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -39,27 +34,14 @@ class ApiController(
     /** Stores active authentication transactions */
     private val transactions: MutableMap<String, Transaction> = HashMap()
 
-    /** Enables x509_san_dns client_id_scheme for OpenId4VP */
-    private val extensions = listOf(
-        X509CertificateExtension(
-            KnownOIDs.subjectAltName_2_5_29_17,
-            critical = false,
-            Asn1EncapsulatingOctetString(
-                listOf(
-                    Asn1.Sequence {
-                        +Asn1Primitive(
-                            SubjectAltNameImplicitTags.dNSName,
-                            Asn1String.UTF8(publicUrl.getDnsName()).encodeToTlv().content
-                        )
-                    }
-                ))))
+    private val clientId = publicUrl.getDnsName()
 
     /** Key material used to sign authentication requests */
-    private val verifierKeyMaterial = EphemeralKeyWithSelfSignedCert(extensions = extensions)
+    private val verifierKeyMaterial = EphemeralKeyWithoutCert()
 
     /** Verifier agent from vc-k */
     private val verifierAgent: VerifierAgent = VerifierAgent(
-        keyPairAdapter = verifierKeyMaterial,
+        identifier = clientId,
     )
 
     /** Implements OpenId4VP, from vc-k, can be customized with more constructor parameters */
@@ -68,10 +50,7 @@ class ApiController(
             verifier = verifierAgent,
             keyMaterial = verifierKeyMaterial,
             /** Could be any other subclass of [at.asitplus.wallet.lib.oidc.OidcSiopVerifier.ClientIdScheme] */
-            clientIdScheme = CertificateSanDns(
-                listOf(runBlocking { verifierKeyMaterial.getCertificate()!! }),
-                publicUrl.getDnsName()
-            )
+            clientIdScheme = OidcSiopVerifier.ClientIdScheme.RedirectUri(clientId)
         )
     }
 
@@ -206,14 +185,14 @@ class ApiController(
             .toUriString()
     }
 
-    /** See [metadataUrl] */
+    /** Wallets can resolve metadata of this service passed by-reference in authn requests, see [metadataUrl] */
     @ResponseBody
     @GetMapping("/openid4vp/metadata")
-    fun getMetadata(): ResponseEntity<String> = runBlocking {
+    fun getMetadata(): ResponseEntity<RelyingPartyMetadata> = runBlocking {
         Napier.i("/openid4vp/metadata called")
         ResponseEntity.ok()
             .contentType(MediaType.APPLICATION_JSON)
-            .body(openId4VpVerifier.createSignedMetadata().getOrThrow().payload.decodeToString())
+            .body(openId4VpVerifier.createSignedMetadata().getOrThrow().payload)
     }
 
     /** Extracts data from VC-K, converts to [OpenId4VpPrincipal] */
