@@ -27,11 +27,34 @@
             document.getElementById("qrcode").src = "data:image/png;base64," + data.qrCodePng
             document.getElementById("qrcodeurl").href = data.qrCodeUrl
             document.getElementById("qrcodeurl").innerText = data.qrCodeUrl
+            return data.id
         }
 
+        async function startRedirectPoll(id) {
+            const loadResult = async function() {
+                try {
+                    console.log('loadResult for ' + id);
+                    /** Request whether an authentication result is available for the id*/
+                    const response = await fetch('api/single/' + id)
+                    if (response.ok) {
+                        /** If an authentication result is available, navigate to success page */
+                        window.location.href = 'success.html?id=' + id
+                    }
+                } catch (error) {
+                    // authentication not yet completed
+                }
+            }
+            /** Check every 2s if authentication has been completed */
+            setInterval(loadResult, 2000)
+        }
+
+        async function setup() {
+            const id = await createTransaction()
+            startRedirectPoll(id)
+        }
     </script>
 </head>
-<body style="background-color: #f3f3f3" onload="createTransaction()">
+<body style="background-color: #f3f3f3" onload="setup()">
 <p>
     <img id="qrcode" src="" width="300px">
 </p>
