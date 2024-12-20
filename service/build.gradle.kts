@@ -33,6 +33,7 @@ dependencies {
     implementation("at.asitplus.wallet:powerofrepresentation:1.1.0")
     implementation("at.asitplus.wallet:certificateofresidence:2.1.0")
     implementation("at.asitplus.wallet:eprescription:1.1.0")
+    implementation("at.asitplus.wallet:company-registration:1.0.0")
 }
 
 springBoot {
