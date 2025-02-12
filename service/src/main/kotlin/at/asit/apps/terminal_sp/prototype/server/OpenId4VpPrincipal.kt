@@ -2,8 +2,13 @@ package at.asit.apps.terminal_sp.prototype.server
 
 import at.asitplus.signum.indispensable.io.Base64UrlStrict
 import at.asitplus.wallet.lib.iso.IssuerSignedItem
-import at.asitplus.wallet.lib.oidc.OidcSiopVerifier
-import at.asitplus.wallet.lib.oidc.OidcSiopVerifier.AuthnResponseResult.*
+import at.asitplus.wallet.lib.openid.AuthnResponseResult
+import at.asitplus.wallet.lib.openid.AuthnResponseResult.IdToken
+import at.asitplus.wallet.lib.openid.AuthnResponseResult.Success
+import at.asitplus.wallet.lib.openid.AuthnResponseResult.SuccessIso
+import at.asitplus.wallet.lib.openid.AuthnResponseResult.SuccessSdJwt
+import at.asitplus.wallet.lib.openid.AuthnResponseResult.ValidationError
+import at.asitplus.wallet.lib.openid.AuthnResponseResult.VerifiablePresentationValidationResults
 import io.matthewnelson.encoding.base64.Base64
 import io.matthewnelson.encoding.core.Encoder.Companion.encodeToString
 import kotlinx.serialization.SerialName
@@ -68,8 +73,8 @@ fun WalletCredential.toOpenId4VpPrincipal() = OpenId4VpPrincipal(
 fun VerifiablePresentationValidationResults.toUserCredential(): List<WalletCredential> =
     validationResults.flatMap { it.toUserCredential() }
 
-private fun OidcSiopVerifier.AuthnResponseResult.toUserCredential(): List<WalletCredential> = when (this) {
-    is Error -> listOf()
+private fun AuthnResponseResult.toUserCredential(): List<WalletCredential> = when (this) {
+    is AuthnResponseResult.Error -> listOf()
     is IdToken -> listOf()
     is Success -> listOf() // Plain JWT credentials not supported
     is SuccessIso -> this.toUserCredential()

@@ -3,7 +3,7 @@ package at.asit.apps.terminal_sp.prototype.server
 import at.asitplus.wallet.eupid.EuPidScheme
 import at.asitplus.wallet.lib.data.AttributeIndex
 import at.asitplus.wallet.lib.data.ConstantIndex.CredentialRepresentation
-import at.asitplus.wallet.lib.oidc.OidcSiopVerifier
+import at.asitplus.wallet.lib.openid.RequestOptionsCredential
 import io.matthewnelson.encoding.base64.Base64
 import io.matthewnelson.encoding.core.Decoder.Companion.decodeToByteArray
 import io.matthewnelson.encoding.core.Encoder.Companion.encodeToString
@@ -37,13 +37,13 @@ data class TransactionRequestCredential(
     /** Optionally set which attributes should be requested from the Wallet */
     val attributes: List<String>? = null,
 ) {
-    fun toRequestOptionsCredential() = OidcSiopVerifier.RequestOptionsCredential(
+    fun toRequestOptionsCredential() = RequestOptionsCredential(
         credentialScheme = credentialType
             ?.let { AttributeIndex.resolveCredential(it)?.first }
             ?: EuPidScheme,
         representation = CredentialRepresentation.entries.firstOrNull { it.name == representation }
             ?: CredentialRepresentation.SD_JWT,
-        requestedAttributes = attributes?.ifEmpty { null }?.toList(),
+        requestedAttributes = attributes?.ifEmpty { null }?.toSet(),
     )
 }
 

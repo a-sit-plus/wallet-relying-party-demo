@@ -1,12 +1,13 @@
 package at.asit.apps.terminal_sp.prototype.server
 
-import at.asitplus.openid.AuthenticationResponseParameters
 import at.asitplus.openid.OpenIdConstants
 import at.asitplus.openid.RelyingPartyMetadata
 import at.asitplus.wallet.lib.agent.EphemeralKeyWithoutCert
 import at.asitplus.wallet.lib.agent.VerifierAgent
-import at.asitplus.wallet.lib.oidc.OidcSiopVerifier
-import at.asitplus.wallet.lib.oidvci.decodeFromPostBody
+import at.asitplus.wallet.lib.openid.AuthnResponseResult
+import at.asitplus.wallet.lib.openid.ClientIdScheme
+import at.asitplus.wallet.lib.openid.OpenId4VpVerifier
+import at.asitplus.wallet.lib.openid.RequestOptions
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Value
@@ -45,12 +46,12 @@ class ApiController(
     )
 
     /** Implements OpenId4VP, from vc-k, can be customized with more constructor parameters */
-    private val openId4VpVerifier: OidcSiopVerifier by lazy {
-        OidcSiopVerifier(
+    private val openId4VpVerifier: OpenId4VpVerifier by lazy {
+        OpenId4VpVerifier(
             verifier = verifierAgent,
             keyMaterial = verifierKeyMaterial,
-            /** Could be any other subclass of [at.asitplus.wallet.lib.oidc.OidcSiopVerifier.ClientIdScheme] */
-            clientIdScheme = OidcSiopVerifier.ClientIdScheme.RedirectUri(clientId)
+            /** Could be any other subclass of [at.asitplus.wallet.lib.openid.ClientIdScheme] */
+            clientIdScheme = ClientIdScheme.RedirectUri(clientId)
         )
     }
 
@@ -117,7 +118,7 @@ class ApiController(
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
                 .also { Napier.w("/transaction/$id returns NOT_FOUND") }
         val state = Base64.getEncoder().encodeToString(Random.nextBytes(32))
-        val requestOptions = OidcSiopVerifier.RequestOptions(
+        val requestOptions = RequestOptions(
             state = state,
             responseMode = OpenIdConstants.ResponseMode.DirectPost,
             responseUrl = buildPostSuccessUrl(id),
@@ -148,9 +149,8 @@ class ApiController(
             Napier.w("/transaction/result/$id returns NOT_FOUND")
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
         }
-        val params: AuthenticationResponseParameters = requestBody.decodeFromPostBody()
-        Napier.i("validateSiopResponse with $params")
-        val user = openId4VpVerifier.validateAuthnResponse(params).toOpenId4VpPrincipal()
+        Napier.i("postTransactionResult with $requestBody")
+        val user = openId4VpVerifier.validateAuthnResponse(requestBody).toOpenId4VpPrincipal()
         Napier.i("Storing user for transaction $id: $user")
         userStore.put(id, user)
         val redirectUrlWithId = ServletUriComponentsBuilder
@@ -192,31 +192,31 @@ class ApiController(
         Napier.i("/openid4vp/metadata called")
         ResponseEntity.ok()
             .contentType(MediaType.APPLICATION_JSON)
-            .body(openId4VpVerifier.createSignedMetadata().getOrThrow().payload)
+            .body(openId4VpVerifier.metadata)
     }
 
     /** Extracts data from VC-K, converts to [OpenId4VpPrincipal] */
-    private suspend fun OidcSiopVerifier.AuthnResponseResult.toOpenId4VpPrincipal(): OpenId4VpPrincipal =
+    private suspend fun AuthnResponseResult.toOpenId4VpPrincipal(): OpenId4VpPrincipal =
         when (this) {
-            is OidcSiopVerifier.AuthnResponseResult.Success ->
+            is AuthnResponseResult.Success ->
                 throw RuntimeException("Plain JWT not supported")
 
-            is OidcSiopVerifier.AuthnResponseResult.SuccessSdJwt ->
+            is AuthnResponseResult.SuccessSdJwt ->
                 this.toUserCredential().toOpenId4VpPrincipal()
 
-            is OidcSiopVerifier.AuthnResponseResult.SuccessIso ->
+            is AuthnResponseResult.SuccessIso ->
                 this.toUserCredential().toOpenId4VpPrincipal()
 
-            is OidcSiopVerifier.AuthnResponseResult.Error ->
+            is AuthnResponseResult.Error ->
                 throw RuntimeException(this.reason)
 
-            is OidcSiopVerifier.AuthnResponseResult.ValidationError ->
+            is AuthnResponseResult.ValidationError ->
                 throw RuntimeException("Validation failed for field: ${this.field}")
 
-            is OidcSiopVerifier.AuthnResponseResult.VerifiablePresentationValidationResults ->
+            is AuthnResponseResult.VerifiablePresentationValidationResults ->
                 this.toUserCredential().toOpenId4VpPrincipal()
 
-            is OidcSiopVerifier.AuthnResponseResult.IdToken ->
+            is AuthnResponseResult.IdToken ->
                 throw RuntimeException("Only got id_token")
         }
 
