@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "at.asitplus"
-version = "1.1.0-SNAPSHOT"
+version = "1.2.0-SNAPSHOT"
 
 kotlin {
     jvmToolchain(17)
@@ -25,7 +25,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.2")
 
     implementation(napier())
-    implementation("at.asitplus.wallet:vck-openid:5.3.3")
+    implementation("at.asitplus.wallet:vck-openid:5.4.2")
     /** Include supported credentials for VC-K, see https://github.com/a-sit-plus/credentials-collection */
     implementation("at.asitplus.wallet:idacredential:3.9.2")
     implementation("at.asitplus.wallet:eupidcredential:2.3.2")
@@ -33,7 +33,7 @@ dependencies {
     implementation("at.asitplus.wallet:powerofrepresentation:1.1.1")
     implementation("at.asitplus.wallet:certificateofresidence:2.1.2")
     implementation("at.asitplus.wallet:eprescription:1.1.1")
-    implementation("at.asitplus.wallet:company-registration:1.0.0")
+    implementation("at.asitplus.wallet:company-registration:1.0.1")
 }
 
 springBoot {

@@ -8,6 +8,7 @@ import at.asitplus.wallet.lib.openid.AuthnResponseResult.Success
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.SuccessIso
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.SuccessSdJwt
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.ValidationError
+import at.asitplus.wallet.lib.openid.AuthnResponseResult.VerifiableDCQLPresentationValidationResults
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.VerifiablePresentationValidationResults
 import io.matthewnelson.encoding.base64.Base64
 import io.matthewnelson.encoding.core.Encoder.Companion.encodeToString
@@ -81,6 +82,7 @@ private fun AuthnResponseResult.toUserCredential(): List<WalletCredential> = whe
     is SuccessSdJwt -> listOf(this.toUserCredential())
     is ValidationError -> listOf()
     is VerifiablePresentationValidationResults -> listOf()
+    is VerifiableDCQLPresentationValidationResults -> this.toUserCredential()
 }
 
 fun SuccessSdJwt.toUserCredential() = WalletCredential(
@@ -95,6 +97,10 @@ fun SuccessIso.toUserCredential() = documents.map { document ->
         allFields = document.validItems.associate { it.elementIdentifier to it.elementValueToString() },
         credentialType = document.mso.docType,
     )
+}
+
+fun VerifiableDCQLPresentationValidationResults.toUserCredential() = this.validationResults.values.flatMap {
+    it.toUserCredential()
 }
 
 private fun String.sha256() = runCatching {

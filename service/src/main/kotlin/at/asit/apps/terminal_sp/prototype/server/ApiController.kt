@@ -7,7 +7,7 @@ import at.asitplus.wallet.lib.agent.VerifierAgent
 import at.asitplus.wallet.lib.openid.AuthnResponseResult
 import at.asitplus.wallet.lib.openid.ClientIdScheme
 import at.asitplus.wallet.lib.openid.OpenId4VpVerifier
-import at.asitplus.wallet.lib.openid.RequestOptions
+import at.asitplus.wallet.lib.openid.OpenIdRequestOptions
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Value
@@ -34,8 +34,6 @@ class ApiController(
 ) {
     /** Stores active authentication transactions */
     private val transactions: MutableMap<String, Transaction> = HashMap()
-
-    private val clientId = publicUrl.getDnsName()
 
     /** Key material used to sign authentication requests */
     private val verifierKeyMaterial = EphemeralKeyWithoutCert()
@@ -121,7 +119,7 @@ class ApiController(
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
                 .also { Napier.w("/transaction/$id returns NOT_FOUND") }
         val state = Base64.getEncoder().encodeToString(Random.nextBytes(32))
-        val requestOptions = RequestOptions(
+        val requestOptions = OpenIdRequestOptions(
             state = state,
             responseMode = OpenIdConstants.ResponseMode.DirectPost,
             responseUrl = buildPostSuccessUrl(id),
@@ -211,16 +209,19 @@ class ApiController(
                 this.toUserCredential().toOpenId4VpPrincipal()
 
             is AuthnResponseResult.Error ->
-                throw RuntimeException(this.reason)
+                throw RuntimeException(reason, cause)
 
             is AuthnResponseResult.ValidationError ->
-                throw RuntimeException("Validation failed for field: ${this.field}")
+                throw RuntimeException("Validation failed for field: $field", cause)
 
             is AuthnResponseResult.VerifiablePresentationValidationResults ->
                 this.toUserCredential().toOpenId4VpPrincipal()
 
             is AuthnResponseResult.IdToken ->
                 throw RuntimeException("Only got id_token")
+
+            is AuthnResponseResult.VerifiableDCQLPresentationValidationResults ->
+                throw RuntimeException("DCQL not expected")
         }
 
 }
