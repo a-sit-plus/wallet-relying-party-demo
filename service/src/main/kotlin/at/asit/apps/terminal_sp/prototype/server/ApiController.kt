@@ -40,9 +40,12 @@ class ApiController(
     /** Key material used to sign authentication requests */
     private val verifierKeyMaterial = EphemeralKeyWithoutCert()
 
+    /** Initialize here to set the correct `identifier` for [verifierAgent] below */
+    private val clientIdScheme = ClientIdScheme.RedirectUri(publicUrl)
+
     /** Verifier agent from vc-k */
     private val verifierAgent: VerifierAgent = VerifierAgent(
-        identifier = clientId,
+        identifier = clientIdScheme.clientId,
     )
 
     /** Implements OpenId4VP, from vc-k, can be customized with more constructor parameters */
@@ -51,7 +54,7 @@ class ApiController(
             verifier = verifierAgent,
             keyMaterial = verifierKeyMaterial,
             /** Could be any other subclass of [at.asitplus.wallet.lib.openid.ClientIdScheme] */
-            clientIdScheme = ClientIdScheme.RedirectUri(clientId)
+            clientIdScheme = clientIdScheme
         )
     }
 
