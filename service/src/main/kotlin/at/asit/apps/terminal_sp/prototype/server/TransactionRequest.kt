@@ -43,7 +43,8 @@ data class TransactionRequestCredential(
             ?: EuPidScheme,
         representation = CredentialRepresentation.entries.firstOrNull { it.name == representation }
             ?: CredentialRepresentation.SD_JWT,
-        requestedAttributes = attributes?.ifEmpty { null }?.toSet(),
+        // TODO or use requestedAttributes to enforce those attributes
+        requestedOptionalAttributes = attributes?.ifEmpty { null }?.toSet(),
     )
 }
 
