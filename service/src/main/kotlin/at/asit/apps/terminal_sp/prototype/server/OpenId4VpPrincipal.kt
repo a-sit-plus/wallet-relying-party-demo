@@ -1,7 +1,7 @@
 package at.asit.apps.terminal_sp.prototype.server
 
 import at.asitplus.signum.indispensable.io.Base64UrlStrict
-import at.asitplus.wallet.lib.iso.IssuerSignedItem
+import at.asitplus.wallet.lib.data.CredentialToJsonConverter.toJsonElement
 import at.asitplus.wallet.lib.openid.AuthnResponseResult
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.IdToken
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.Success
@@ -10,14 +10,13 @@ import at.asitplus.wallet.lib.openid.AuthnResponseResult.SuccessSdJwt
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.ValidationError
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.VerifiableDCQLPresentationValidationResults
 import at.asitplus.wallet.lib.openid.AuthnResponseResult.VerifiablePresentationValidationResults
-import io.matthewnelson.encoding.base64.Base64
 import io.matthewnelson.encoding.core.Encoder.Companion.encodeToString
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import org.springframework.security.core.AuthenticatedPrincipal
 import java.security.MessageDigest
 import java.time.Instant
@@ -44,7 +43,7 @@ data class AuthenticatedUser(
 /** Holds a credential sent from the Wallet */
 @Serializable
 data class WalletCredential(
-    val allFields: Map<String, String> = mapOf(),
+    val allFields: JsonObject? = null,
     val credentialType: String? = null,
 )
 
@@ -86,15 +85,15 @@ private fun AuthnResponseResult.toUserCredential(): List<WalletCredential> = whe
 }
 
 fun SuccessSdJwt.toUserCredential() = WalletCredential(
-    allFields = disclosures
-        .filter { it.claimName != null && it.claimValue is JsonPrimitive }
-        .associate { it.claimName!! to it.claimValue.jsonPrimitive.content },
+    allFields = reconstructed,
     credentialType = verifiableCredentialSdJwt.verifiableCredentialType,
 )
 
 fun SuccessIso.toUserCredential() = documents.map { document ->
     WalletCredential(
-        allFields = document.validItems.associate { it.elementIdentifier to it.elementValueToString() },
+        allFields = buildJsonObject {
+            document.validItems.associate { it.elementIdentifier to it.toJsonElement() }
+        },
         credentialType = document.mso.docType,
     )
 }
@@ -106,10 +105,4 @@ fun VerifiableDCQLPresentationValidationResults.toUserCredential() = this.valida
 private fun String.sha256() = runCatching {
     MessageDigest.getInstance("SHA-256").digest(this.encodeToByteArray()).encodeToString(Base64UrlStrict)
 }.getOrElse { this.hashCode().toString() }
-
-private fun IssuerSignedItem.elementValueToString() = when (elementValue) {
-    is ByteArray -> (elementValue as ByteArray).encodeToString(Base64())
-    is Array<*> -> (elementValue as Array<*>).contentToString()
-    else -> elementValue.toString()
-}
 
