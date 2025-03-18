@@ -1,9 +1,13 @@
 package at.asit.apps.terminal_sp.prototype.server
 
 import at.asitplus.wallet.eupid.EuPidScheme
+import at.asitplus.wallet.healthid.HealthIdScheme
 import at.asitplus.wallet.lib.data.AttributeIndex
 import at.asitplus.wallet.lib.data.ConstantIndex.CredentialRepresentation
+import at.asitplus.wallet.lib.data.ConstantIndex.CredentialScheme
 import at.asitplus.wallet.lib.openid.RequestOptionsCredential
+import at.asitplus.wallet.por.PowerOfRepresentationScheme
+import at.asitplus.wallet.taxid.TaxIdScheme
 import io.matthewnelson.encoding.base64.Base64
 import io.matthewnelson.encoding.core.Decoder.Companion.decodeToByteArray
 import io.matthewnelson.encoding.core.Encoder.Companion.encodeToString
@@ -37,15 +41,25 @@ data class TransactionRequestCredential(
     /** Optionally set which attributes should be requested from the Wallet */
     val attributes: List<String>? = null,
 ) {
-    fun toRequestOptionsCredential() = RequestOptionsCredential(
-        credentialScheme = credentialType
-            ?.let { AttributeIndex.resolveCredential(it)?.first }
-            ?: EuPidScheme,
-        representation = CredentialRepresentation.entries.firstOrNull { it.name == representation }
-            ?: CredentialRepresentation.SD_JWT,
-        // TODO or use requestedAttributes to enforce those attributes
-        requestedOptionalAttributes = attributes?.ifEmpty { null }?.toSet(),
-    )
+    fun toRequestOptionsCredential() =
+        (credentialType?.let { AttributeIndex.resolveCredential(it)?.first } ?: EuPidScheme).let { scheme ->
+            RequestOptionsCredential(
+                credentialScheme = scheme,
+                representation = CredentialRepresentation.entries.firstOrNull { it.name == representation }
+                    ?: CredentialRepresentation.SD_JWT,
+                // TODO or use requestedAttributes to enforce those attributes
+                requestedOptionalAttributes = if (scheme.isSd() == false) null
+                else attributes?.ifEmpty { null }?.toSet()
+            )
+        }
+
+    // Not all credentials are selectively disclosable, so no need to request sinngle attributes
+    private fun CredentialScheme.isSd(): Boolean = when (this) {
+        is HealthIdScheme -> false
+        is TaxIdScheme -> false
+        is PowerOfRepresentationScheme -> false
+        else -> true
+    }
 }
 
 /** Sent to `index.html` to display a QR Code that can be scanned by wallet apps, from [ApiController.postTransactionCreate] */
@@ -92,5 +106,5 @@ object ByteArrayToBase64Serializer : KSerializer<ByteArray> {
 @Serializable
 data class Transaction(
     val id: String,
-    val request: TransactionRequest
+    val request: TransactionRequest,
 )
