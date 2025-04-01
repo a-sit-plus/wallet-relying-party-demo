@@ -2,21 +2,22 @@ import at.asitplus.gradle.napier
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 plugins {
-    id("org.springframework.boot") version "3.2.10"
-    id("io.spring.dependency-management") version "1.1.4"
+    id("org.springframework.boot") version "3.4.3"
     kotlin("jvm")
     kotlin("plugin.spring")
     kotlin("plugin.serialization")
 }
 
 group = "at.asitplus"
-version = "1.2.0-SNAPSHOT"
+version = "1.3.0-SNAPSHOT"
 
 kotlin {
     jvmToolchain(17)
 }
 
 dependencies {
+    implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
+
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -25,7 +26,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.2")
 
     implementation(napier())
-    implementation("at.asitplus.wallet:vck-openid:5.4.4")
+    implementation("at.asitplus.wallet:vck-openid:5.5.0")
     /** Include supported credentials for VC-K, see https://github.com/a-sit-plus/credentials-collection */
     implementation("at.asitplus.wallet:eupidcredential:3.0.0")
     implementation("at.asitplus.wallet:mobiledrivinglicence:1.1.4")

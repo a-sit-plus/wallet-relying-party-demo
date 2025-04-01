@@ -58,14 +58,14 @@ class ApiController(
 
     /** Used to redirect the wallet after authentication, see [postTransactionResult] */
     private val authenticationSuccessUrl by lazy {
-        ServletUriComponentsBuilder.fromHttpUrl(publicUrl)
+        ServletUriComponentsBuilder.fromUriString(publicUrl)
             .pathSegment("success.html")
             .toUriString()
     }
 
     /** See [getMetadata] */
     private val metadataUrl by lazy {
-        ServletUriComponentsBuilder.fromHttpUrl(publicUrl)
+        ServletUriComponentsBuilder.fromUriString(publicUrl)
             .pathSegment("openid4vp", "metadata")
             .toUriString()
     }
@@ -155,7 +155,7 @@ class ApiController(
         Napier.i("Storing user for transaction $id: $user")
         userStore.put(id, user)
         val redirectUrlWithId = ServletUriComponentsBuilder
-            .fromHttpUrl(authenticationSuccessUrl)
+            .fromUriString(authenticationSuccessUrl)
             .queryParam("id", id)
             .toUriString()
         ResponseEntity.ok()
@@ -174,14 +174,14 @@ class ApiController(
     /** Included in URL for wallet in [buildAuthnUrlForWallet], and then called in [getTransaction] */
     private fun buildTransactionUrl(request: TransactionRequest, transactionId: String) = runBlocking {
         transactions[transactionId] = Transaction(transactionId, request)
-        ServletUriComponentsBuilder.fromHttpUrl(publicUrl)
+        ServletUriComponentsBuilder.fromUriString(publicUrl)
             .pathSegment("transaction", "get", transactionId)
             .toUriString()
     }
 
     /** See [postTransactionResult] */
     private fun buildPostSuccessUrl(transactionId: String) = runBlocking {
-        ServletUriComponentsBuilder.fromHttpUrl(publicUrl)
+        ServletUriComponentsBuilder.fromUriString(publicUrl)
             .pathSegment("transaction", "result", transactionId)
             .toUriString()
     }
