@@ -26,7 +26,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.2")
 
     implementation(napier())
-    implementation("at.asitplus.wallet:vck-openid:5.5.0")
+    implementation("at.asitplus.wallet:vck-openid:5.6.5")
     /** Include supported credentials for VC-K, see https://github.com/a-sit-plus/credentials-collection */
     implementation("at.asitplus.wallet:eupidcredential:3.0.0")
     implementation("at.asitplus.wallet:mobiledrivinglicence:1.1.4")
