@@ -1,8 +1,9 @@
 package at.asit.apps.terminal_sp.prototype.server
 
+import io.ktor.utils.io.InternalAPI
+import io.ktor.utils.io.locks.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import okio.withLock
 import org.springframework.stereotype.Service
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.time.Duration.Companion.minutes
@@ -10,6 +11,7 @@ import kotlin.time.Duration.Companion.minutes
 /**
  * Holds a list of all successfully authenticated users.
  */
+@OptIn(InternalAPI::class)
 @Service
 class UserStore {
     private val lifetime = 5.minutes
