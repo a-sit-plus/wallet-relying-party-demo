@@ -3,6 +3,7 @@ package at.asit.apps.terminal_sp.prototype.server
 import at.asitplus.openid.OpenIdConstants
 import at.asitplus.openid.RelyingPartyMetadata
 import at.asitplus.wallet.lib.agent.EphemeralKeyWithoutCert
+import at.asitplus.wallet.lib.agent.KeyStoreMaterial
 import at.asitplus.wallet.lib.agent.VerifierAgent
 import at.asitplus.wallet.lib.openid.AuthnResponseResult
 import at.asitplus.wallet.lib.openid.ClientIdScheme
@@ -20,6 +21,8 @@ import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import org.springframework.web.util.UriComponentsBuilder
 import qrcode.QRCode
+import java.io.File
+import java.security.KeyStore
 import java.util.*
 import kotlin.random.Random
 import kotlin.uuid.ExperimentalUuidApi
@@ -35,15 +38,61 @@ class ApiController(
     /** Stores active authentication transactions */
     private val transactions: MutableMap<String, Transaction> = HashMap()
 
-    /** Key material used to sign authentication requests */
+    /**
+     * Key material used to sign authentication requests.
+     *
+     * Use this to load a key store:
+     * ```
+     * private val verifierKeyMaterial = KeyStoreMaterial(
+     *         keyStore = KeyStore.getInstance("PKCS12").apply {
+     *             load(File("verifier.p12").inputStream(), "changeit".toCharArray())
+     *         },
+     *         keyAlias = "verifier",
+     *         privateKeyPassword = "changeit".toCharArray(),
+     *         certAlias = "verifier",
+     *     )
+     * ```
+     *
+     * Note that for Potential Profile v2, there needs to be a certificate for this key that can be used for
+     * the client identifier scheme `x509_san_dns` (see below in [clientIdScheme]). The requirements for this
+     * certificate are given in https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.9.3-3.5.1,
+     * i.e. it needs to have a `dNSName` SAN extension with the host part of the service running this verifier.
+     */
     private val verifierKeyMaterial = EphemeralKeyWithoutCert()
 
-    /** Initialize here to set the correct `identifier` for [verifierAgent] below */
+    /**
+     * Initialize here to set the correct `identifier` for [verifierAgent] below.
+     * Use this for Potential Profile v2:
+     * ```
+     * private val clientIdScheme = runBlocking {
+     *         ClientIdScheme.CertificateSanDns(
+     *             chain = listOf(verifierKeyMaterial.getCertificate()!!),
+     *             clientIdDnsName = publicUrl.getDnsName(),
+     *             redirectUri = publicUrl,
+     *             useDeprecatedClientIdScheme = true,
+     *         )
+     *     }
+     * ````
+     **/
     private val clientIdScheme = ClientIdScheme.RedirectUri(publicUrl)
 
     /** Verifier agent from vc-k */
     private val verifierAgent: VerifierAgent = VerifierAgent(
+        // For Potential Profile v2:
+        // identifier = clientIdScheme.clientId.removePrefix(clientIdScheme.scheme.prefix),
         identifier = clientIdScheme.clientId,
+        // For Potential Profile v2:
+        // Validator(
+        //        verifyJwsObject = VerifyJwsObject(
+        //            publicKeyLookup = { jwsSigned ->
+        //                (jwsSigned.payload as? JsonObject)?.get("iss")?.jsonPrimitive?.content?.let { iss ->
+        //                    val url = buildVcIssuerUrl(iss)
+        //                    Napier.i("Resolving Key for $iss from $url")
+        //                    httpClient.get(url).body<JwtVcIssuerMetadata>().jsonWebKeySet?.keys?.toSet()
+        //                }
+        //            }
+        //        ),
+        //    )
     )
 
     /** Implements OpenId4VP, from vc-k, can be customized with more constructor parameters */
@@ -121,9 +170,13 @@ class ApiController(
         val state = Base64.getEncoder().encodeToString(Random.nextBytes(32))
         val requestOptions = OpenIdRequestOptions(
             state = state,
+            // For Potential Profile v2:
+            //responseMode = OpenIdConstants.ResponseMode.DirectPostJwt,
             responseMode = OpenIdConstants.ResponseMode.DirectPost,
             responseUrl = buildPostSuccessUrl(id),
             credentials = transactionRequest.request.toRequestOptionsCredentials(),
+            // For Potential Profile v2:
+            // encryption = true,
         )
         val requestObjectJws = openId4VpVerifier.createAuthnRequestAsSignedRequestObject(requestOptions).getOrElse {
             Napier.w("/transaction/$id error", it)
@@ -167,7 +220,9 @@ class ApiController(
     private fun buildAuthnUrlForWallet(request: TransactionRequest, transactionId: String) =
         ServletUriComponentsBuilder.fromUriString(request.urlprefix)
             .queryParam("request_uri", buildTransactionUrl(request, transactionId))
-            .queryParam("client_id", publicUrl.getDnsName())
+            // for Potential Profile v2:
+            // .queryParam("client_id", clientIdScheme.clientId.removePrefix(clientIdScheme.scheme.prefix))
+            .queryParam("client_id", clientIdScheme.clientId)
             .queryParam("client_metadata_uri", metadataUrl)
             .toUriString()
 

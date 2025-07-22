@@ -12,14 +12,14 @@
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
                     /** Prefix for the URL displayed to start Wallet authentication, e.g. `haip://` */
-                    "urlprefix": "https://wallet.a-sit.at/remote/",
+                    "urlprefix": "haip://", // needed for Potential Profile v2
                     "credentials": [{
                         /** Set an SD-JWT type or ISO doctype of a credential known to this service */
-                        "credentialType": "urn:eu.europa.ec.eudi:pid:1",
+                        "credentialType": "urn:eu.europa.ec.eudi:cr:1",
                         /** Set `SD_JWT` or `PLAIN_JWT` or `ISO_MDOC` */
                         "representation": "SD_JWT",
                         /** Optionally set which attributes should be requested from the Wallet */
-                        "attributes": ["family_name", "given_name", "birth_date"]
+                        //"attributes": ["family_name", "given_name", "birth_date"]
                     }]
                 })
             })
