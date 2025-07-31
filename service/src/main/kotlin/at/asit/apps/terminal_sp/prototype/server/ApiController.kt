@@ -1,22 +1,33 @@
 package at.asit.apps.terminal_sp.prototype.server
 
+import at.asitplus.openid.JwtVcIssuerMetadata
 import at.asitplus.openid.OpenIdConstants
 import at.asitplus.openid.RelyingPartyMetadata
+import at.asitplus.signum.indispensable.josef.io.joseCompliantSerializer
 import at.asitplus.wallet.lib.agent.EphemeralKeyWithoutCert
 import at.asitplus.wallet.lib.agent.KeyStoreMaterial
+import at.asitplus.wallet.lib.agent.Validator
 import at.asitplus.wallet.lib.agent.VerifierAgent
+import at.asitplus.wallet.lib.jws.VerifyJwsObject
 import at.asitplus.wallet.lib.openid.AuthnResponseResult
 import at.asitplus.wallet.lib.openid.ClientIdScheme
 import at.asitplus.wallet.lib.openid.OpenId4VpVerifier
 import at.asitplus.wallet.lib.openid.OpenIdRequestOptions
 import io.github.aakira.napier.Napier
+import io.ktor.http.URLBuilder
+import io.ktor.http.Url
+import io.ktor.http.path
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.client.RestClient
+import org.springframework.web.client.body
 import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import org.springframework.web.util.UriComponentsBuilder
@@ -82,18 +93,22 @@ class ApiController(
         // identifier = clientIdScheme.clientId.removePrefix(clientIdScheme.scheme.prefix),
         identifier = clientIdScheme.clientId,
         // For Potential Profile v2:
-        // Validator(
-        //        verifyJwsObject = VerifyJwsObject(
-        //            publicKeyLookup = { jwsSigned ->
-        //                (jwsSigned.payload as? JsonObject)?.get("iss")?.jsonPrimitive?.content?.let { iss ->
-        //                    val url = buildVcIssuerUrl(iss)
-        //                    Napier.i("Resolving Key for $iss from $url")
-        //                    httpClient.get(url).body<JwtVcIssuerMetadata>().jsonWebKeySet?.keys?.toSet()
-        //                }
-        //            }
-        //        ),
-        //    )
+//        validator = Validator(
+//            verifyJwsObject = VerifyJwsObject(
+//                publicKeyLookup = { jwsSigned ->
+//                    (jwsSigned.payload as? JsonObject)?.get("iss")?.jsonPrimitive?.content?.let { iss ->
+//                        val url = buildVcIssuerUrl(iss)
+//                        Napier.i("Resolving Key for $iss from $url")
+//                        RestClient.create().get().uri(url.toString()).retrieve().body<JwtVcIssuerMetadata>()?.jsonWebKeySet?.keys?.toSet()
+//                    }
+//                }
+//            ),
+//        )
     )
+
+//    private fun buildVcIssuerUrl(iss: String): Url = URLBuilder(urlString = iss).apply {
+//        path(".well-known", "jwt-vc-issuer", *(pathSegments.toTypedArray()))
+//    }.build()
 
     /** Implements OpenId4VP, from vc-k, can be customized with more constructor parameters */
     private val openId4VpVerifier: OpenId4VpVerifier by lazy {
